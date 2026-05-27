@@ -1,0 +1,410 @@
+RESUMO DO PROJETO: ORGANIZADOR DE DOCUMENTOS MOBILE
+
+1. OBJETIVO
+
+O objetivo e recriar um projeto Python existente chamado documents-org, originalmente feito em um unico arquivo app.py com Streamlit, Supabase e toda a logica misturada: interface, banco, autenticacao, upload, regras de negocio e estilos.
+
+A intencao e transformar essa ideia em um app mais organizado, mobile-first, futuramente usavel no celular, mantendo Python como linguagem principal, porque o usuario conhece apenas Python.
+
+O app original e um organizador financeiro/de documentos. Ele permite:
+
+- login/cadastro;
+- visualizacao anual por meses;
+- calendario mensal;
+- tela de documentos por dia;
+- upload de arquivos PDF/imagem;
+- classificacao por tipo de documento;
+- vinculo entre comprovantes e outros documentos;
+- calculo de pendencias;
+- exclusao segura de documentos e vinculos.
+
+
+2. PROJETO NOVO
+
+Foi criado um novo projeto em:
+
+C:\Users\Citra LTDA\OneDrive\Desktop\CODEX\documents_org_mobile
+
+A estrutura atual esta separada em camadas:
+
+- main.py: app visual atual em Flet.
+- documents_org/config: constantes e leitura do .env.
+- documents_org/models: modelos de dominio.
+- documents_org/services: Supabase, storage e regras de negocio.
+- tests: testes unitarios e testes de fumaca da interface.
+
+
+3. STACK ATUAL
+
+A stack comecou como Kivy/KivyMD, mas foi trocada para Flet.
+
+Motivo da troca:
+
+- Kivy apresentou problemas de instalacao no Windows com Python 3.14.
+- Flet foi escolhido por manter Python, ser mais simples de instalar e ainda permitir app desktop/mobile/web.
+- O projeto usa Flet 0.85.1 instalado na venv do usuario.
+
+Dependencias atuais em requirements.txt:
+
+flet
+httpx==0.28.1
+pytest
+
+
+4. SUPABASE
+
+O app original usava:
+
+- gotrue
+- postgrest
+- storage3
+
+Essas dependencias foram removidas porque storage3 puxava pyiceberg, que tentou compilar extensao C++ no Windows/Python 3.14 e falhou pedindo Microsoft Visual C++ Build Tools.
+
+Foi implementado um cliente Supabase manual com httpx, cobrindo:
+
+- login via Supabase Auth REST;
+- cadastro via Supabase Auth REST;
+- consultas em PostgREST;
+- inserts em PostgREST;
+- deletes em PostgREST;
+- upload para Supabase Storage via HTTP;
+- remocao de objetos do Storage via HTTP.
+
+Arquivo principal:
+
+documents_org/services/supabase_client.py
+
+As keys foram copiadas do projeto antigo:
+
+Origem:
+
+C:\Users\Citra LTDA\OneDrive\Desktop\PROJETOS PESSOAIS\PROJETO PYTHON\documents-org\.streamlit\secrets.toml
+
+Destino:
+
+C:\Users\Citra LTDA\OneDrive\Desktop\CODEX\documents_org_mobile\.env
+
+O .env contem:
+
+SUPABASE_URL=...
+SUPABASE_KEY=...
+SUPABASE_BUCKET=documents
+
+Os valores nao foram expostos em conversa/terminal.
+
+
+5. REGRAS DE NEGOCIO IMPLEMENTADAS
+
+Arquivo:
+
+documents_org/services/rules.py
+
+Funcoes implementadas/testadas:
+
+- limpar_nome_arquivo
+- nome_documento
+- tipo_documento_label
+- montar_vinculo_ids
+- ids_vinculados
+- calcular_status_mes
+
+Regras preservadas do app original:
+
+- Um comprovante sem vinculo conta como pendencia.
+- Status mensal pode ser:
+  - empty
+  - ok
+  - pending
+  - urgent
+- Upload cria caminho unico:
+  - user_id/data/uuid/nome_arquivo
+- Excluir documento remove:
+  - vinculos onde ele e comprovante;
+  - vinculos onde ele e documento;
+  - registro em documents;
+  - tenta remover arquivo do bucket.
+
+
+6. MODELOS CRIADOS
+
+Arquivo:
+
+documents_org/models/entities.py
+
+Modelos:
+
+- Document
+- DocumentLink
+- MonthStatus
+
+
+7. INTERFACE ATUAL
+
+A interface atual foi reimplementada em Flet dentro de:
+
+main.py
+
+Telas/fluxos atuais:
+
+- login;
+- cadastro;
+- dashboard anual com cards de meses;
+- calendario do mes;
+- tela do dia;
+- upload de documento;
+- listagem separada entre comprovantes e demais documentos;
+- vinculo de documentos;
+- exclusao de documento.
+
+Visual:
+
+- tema escuro;
+- azul/preto;
+- cards arredondados;
+- botoes azuis;
+- layout pensado para janela com proporcao de celular.
+
+
+8. ERROS CORRIGIDOS
+
+8.1. Kivy nao instalava
+
+Erro:
+
+No matching distribution found for kivy_deps.sdl2_dev
+
+Causa:
+
+- venv criada com Python 3.14;
+- Kivy no Windows depende de wheels nativas;
+- nao havia dependencias compativeis.
+
+Decisao:
+
+- abandonar Kivy/KivyMD;
+- migrar para Flet.
+
+
+8.2. pyiceberg falhando
+
+Erro:
+
+error: Microsoft Visual C++ 14.0 or greater is required
+Failed building wheel for pyiceberg
+
+Causa:
+
+- dependencia indireta do SDK de Storage/Supabase;
+- tentativa de build C++ no Windows.
+
+Decisao:
+
+- remover SDKs gotrue, postgrest, storage3;
+- implementar Supabase via HTTP direto com httpx.
+
+
+8.3. FilePicker on_result
+
+Erro:
+
+TypeError: FilePicker.__init__() got an unexpected keyword argument 'on_result'
+
+Causa:
+
+- API do Flet 0.85.1 mudou;
+- FilePicker.pick_files() e assincrono e retorna arquivos.
+
+Correcao:
+
+- remover on_result;
+- criar metodo async pick_file;
+- usar files = await self.file_picker.pick_files(...).
+
+
+8.4. ft.padding.symmetric
+
+Erro:
+
+AttributeError: module 'flet.controls.padding' has no attribute 'symmetric'
+
+Causa:
+
+- API nova do Flet nao possui esse helper.
+
+Correcao:
+
+- criar helper proprio pad(horizontal, vertical).
+
+
+8.5. ft.border.all
+
+Problema semelhante ao padding.
+
+Correcao:
+
+- criar helper proprio border_all(width, color).
+
+
+8.6. ft.app() deprecated
+
+Aviso:
+
+DeprecationWarning: app() is deprecated since version 0.80.0. Use run() instead.
+
+Correcao:
+
+- trocar ft.app(target=main) por ft.run(main).
+
+
+8.7. ElevatedButton deprecated
+
+Aviso:
+
+ElevatedButton is deprecated since version 0.80.0
+
+Correcao:
+
+- trocar por ft.Button.
+
+
+8.8. FilePicker renderizado como controle desconhecido
+
+Erro visual:
+
+Unknown control: FilePicker
+
+Causa:
+
+- FilePicker foi colocado em page.overlay;
+- em Flet 0.85.1, ele e Service, nao controle visual.
+
+Correcao:
+
+self.page.services.append(self.file_picker)
+
+
+8.9. GridView shrink_wrap
+
+Erro ao abrir calendario:
+
+GridView.__init__() got an unexpected keyword argument 'shrink_wrap'
+
+Causa:
+
+- GridView do Flet 0.85.1 nao aceita shrink_wrap.
+
+Correcao:
+
+- remover shrink_wrap=True.
+
+
+9. TESTES CRIADOS
+
+Arquivo:
+
+tests/test_rules.py
+
+Cobertura:
+
+- limpeza de nome de arquivo;
+- montagem de vinculo;
+- ids vinculados;
+- status vazio;
+- status ok;
+- status pending;
+- status urgent.
+
+Arquivo:
+
+tests/test_flet_smoke.py
+
+Cobertura de fumaca da interface:
+
+- tela de login;
+- dashboard;
+- calendario;
+- tela do dia;
+- cards de documentos;
+- dialogo de vinculo;
+- dialogo de exclusao;
+- garantia de que FilePicker vai em page.services, nao overlay.
+
+Ultimo estado dos testes:
+
+14 passed
+14 python files parsed
+
+Ha um aviso do pytest sobre .pytest_cache, causado por permissao/OneDrive, mas nao afeta o app.
+
+
+10. ESTADO ATUAL
+
+O app ja abre, permite login, selecao de mes e navegacao inicial. Foram corrigidos os erros visuais e de API conhecidos ate o momento.
+
+O estado atual parece promissor, mas ainda esta em fase de estabilizacao porque Flet 0.85.1 tem mudancas recentes de API, e varias partes precisaram ser ajustadas conforme os erros apareciam.
+
+O projeto esta num caminho mais leve do que Kivy, porque:
+
+- instalacao ficou simples;
+- dependencias nativas foram evitadas;
+- Python 3.14 nao esta mais bloqueando a instalacao;
+- Supabase foi desacoplado dos SDKs problematicos.
+
+
+11. PONTOS QUE AINDA PRECISAM SER AVALIADOS
+
+1. Se Flet e realmente o caminho final para mobile ou apenas um bom prototipo desktop/mobile-ready.
+2. Se vale manter Supabase via HTTP manual ou voltar para SDK futuramente em Python mais estavel.
+3. Se o design atual em Flet esta bom o suficiente ou precisa ser redesenhado com mais cuidado.
+4. Se o app deve continuar online-first ou ganhar modo offline com SQLite.
+5. Se o upload via FilePicker sera suficiente no Android ou precisara adaptacao especifica.
+6. Se a navegacao deve continuar em um unico main.py ou ser quebrada em modulos depois que estabilizar.
+7. Se a seguranca/RLS do Supabase esta compativel com as chamadas HTTP atuais.
+8. Se o build Android com flet build apk sera viavel no ambiente do usuario.
+
+
+12. PROXIMOS PASSOS SUGERIDOS
+
+1. Testar manualmente o fluxo completo:
+   - login;
+   - abrir mes;
+   - abrir dia;
+   - selecionar arquivo;
+   - salvar documento;
+   - listar documento;
+   - vincular;
+   - excluir.
+
+2. Se o fluxo funcionar, refatorar main.py em modulos:
+   - ui/auth.py
+   - ui/dashboard.py
+   - ui/calendar.py
+   - ui/day.py
+   - ui/components.py
+
+3. Melhorar design:
+   - espacamento mobile;
+   - cards;
+   - navegacao;
+   - estados vazios;
+   - feedback de carregamento;
+   - botoes com icones.
+
+4. Validar chamadas Supabase:
+   - filtros por usuario;
+   - RLS;
+   - upload;
+   - delete;
+   - permissoes no bucket.
+
+5. So depois pensar em Android:
+   - testar flet build apk;
+   - validar FilePicker no celular;
+   - validar permissoes de arquivos.
+
+
+13. RESUMO CURTO
+
+Saimos de um monolito Streamlit funcional, tentamos Kivy, batemos em instalacao nativa, migramos para Flet, removemos SDKs problematicos do Supabase, e agora estamos estabilizando o app com testes de fumaca para nao corrigir uma tela e quebrar outra.
+

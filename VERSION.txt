@@ -1,0 +1,14 @@
+0.2
+
+Base estavel antes da tela de pre-fechamento/fechamento de caixa.
+
+Estado validado:
+- Login com loading overlay.
+- Dashboard de meses.
+- Calendario responsivo com indicador visual de dia com documento.
+- Tela do dia com upload multiplo.
+- Tipos por arquivo no lote.
+- Vinculos agrupados visualmente.
+- Desvincular documentos.
+- Testes automatizados passando.
+
