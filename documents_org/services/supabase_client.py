@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -22,7 +23,7 @@ class AuthState:
 class SupabaseGateway:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = httpx.Client(timeout=30)
+        self.client = httpx.Client(timeout=httpx.Timeout(connect=20, read=180, write=180, pool=20))
         self.state = AuthState()
 
     def sign_in(self, email: str, password: str) -> AuthState:
@@ -96,6 +97,15 @@ class SupabaseGateway:
             content=content,
         )
         self._raise_for_status(response)
+
+    def download_object(self, path: str) -> bytes:
+        encoded_path = quote(path, safe="/")
+        response = self.client.get(
+            f"{self.settings.storage_url}/object/{self.settings.supabase_bucket}/{encoded_path}",
+            headers=self._auth_headers(),
+        )
+        self._raise_for_status(response)
+        return response.content
 
     def remove_objects(self, paths: list[str]) -> None:
         response = self.client.request(

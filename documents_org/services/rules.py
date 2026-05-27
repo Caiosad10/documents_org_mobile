@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 import uuid
 from datetime import date
 from typing import Iterable, Protocol
@@ -15,8 +16,12 @@ class HasIdAndType(Protocol):
 
 def limpar_nome_arquivo(nome: str) -> str:
     nome_limpo = nome.replace("\\", "/").split("/")[-1].strip()
+    nome_limpo = unicodedata.normalize("NFKD", nome_limpo)
+    nome_limpo = nome_limpo.encode("ascii", "ignore").decode("ascii")
     nome_limpo = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", nome_limpo)
-    nome_limpo = re.sub(r"\s+", " ", nome_limpo)
+    nome_limpo = re.sub(r"\s+", "_", nome_limpo)
+    nome_limpo = re.sub(r"[^A-Za-z0-9._-]", "_", nome_limpo)
+    nome_limpo = re.sub(r"_+", "_", nome_limpo).strip("._ ")
     return nome_limpo or f"{uuid.uuid4()}.pdf"
 
 
@@ -82,4 +87,3 @@ def calcular_status_mes(
         status = "pending"
 
     return MonthStatus(dias_com_docs=dias_com_docs, pendencias=pendencias, status=status)
-

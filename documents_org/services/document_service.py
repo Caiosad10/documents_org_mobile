@@ -56,6 +56,20 @@ class DocumentService:
         )
         return {int(item["date"].split("-")[2]) for item in data}
 
+    def listar_documentos_do_mes(self, ano: int, mes: int) -> list[Document]:
+        inicio = f"{ano}-{mes:02d}-01"
+        ultimo_dia = calendar.monthrange(ano, mes)[1]
+        fim = f"{ano}-{mes:02d}-{ultimo_dia}"
+        rows = self.gateway.rest_select(
+            "documents",
+            {
+                "select": "*",
+                "and": f"(date.gte.{inicio},date.lte.{fim})",
+                "order": "date.asc,created_at.asc",
+            },
+        )
+        return [Document.from_dict(item) for item in rows]
+
     def listar_documentos_do_dia(self, data: str) -> list[Document]:
         rows = self.gateway.rest_select(
             "documents",
@@ -117,6 +131,9 @@ class DocumentService:
 
         self.gateway.upload_object(destino, path.read_bytes(), content_type)
         return destino
+
+    def baixar_documento(self, doc: Document) -> bytes:
+        return self.gateway.download_object(doc.file_path)
 
     def salvar_vinculo(self, doc_origem: Document, doc_destino: Document) -> bool:
         comprovante_id, documento_id = montar_vinculo_ids(doc_origem, doc_destino)

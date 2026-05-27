@@ -1,6 +1,6 @@
-0.2
+0.5
 
-Base estavel antes da tela de pre-fechamento/fechamento de caixa.
+Base estavel com pre-fechamento, impressao automatica e exclusao em lote.
 
 Estado validado:
 - Login com loading overlay.
@@ -10,5 +10,8 @@ Estado validado:
 - Tipos por arquivo no lote.
 - Vinculos agrupados visualmente.
 - Desvincular documentos.
+- Pre-fechamento mensal por ordem de dia.
+- Impressao automatica em fila usando arquivos temporarios.
+- HTML de conferencia dos documentos do mes.
+- Exclusao individual e exclusao em lote.
 - Testes automatizados passando.
-

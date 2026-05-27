@@ -22,7 +22,14 @@ def doc(id_: str, type_: str = "comprovante", date_: str = "2026-05-10") -> Docu
 
 
 def test_limpar_nome_arquivo_remove_caminho_e_caracteres_invalidos():
-    assert limpar_nome_arquivo(r"C:\temp\boleto<>maio?.pdf") == "boleto__maio_.pdf"
+    assert limpar_nome_arquivo(r"C:\temp\boleto<>maio?.pdf") == "boleto_maio_.pdf"
+
+
+def test_limpar_nome_arquivo_deixa_nome_seguro_para_storage():
+    assert (
+        limpar_nome_arquivo("PC_0101_MAT. ELÉT_CABO COBRE_SITE MSDOS-0950.pdf")
+        == "PC_0101_MAT._ELET_CABO_COBRE_SITE_MSDOS-0950.pdf"
+    )
 
 
 def test_montar_vinculo_prioriza_comprovante():
@@ -83,4 +90,3 @@ def test_calcular_status_urgent_no_fim_do_mes_atual():
     status = calcular_status_mes(docs, [], 2026, 5, date(2026, 5, 28))
 
     assert status.status == "urgent"
-
