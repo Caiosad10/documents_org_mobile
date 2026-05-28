@@ -1,6 +1,6 @@
-0.5
+0.6
 
-Base estavel com pre-fechamento, impressao automatica e exclusao em lote.
+Base estavel com pre-fechamento, impressao automatica, exclusao em lote e nova identidade visual.
 
 Estado validado:
 - Login com loading overlay.
@@ -14,4 +14,8 @@ Estado validado:
 - Impressao automatica em fila usando arquivos temporarios.
 - HTML de conferencia dos documentos do mes.
 - Exclusao individual e exclusao em lote.
+- Fundo radial escuro inspirado no projeto web original.
+- Cards com gradiente, bordas sutis e sombra premium.
+- Botoes estilizados com hover.
+- Microanimacoes leves em botoes, cards e calendario.
 - Testes automatizados passando.

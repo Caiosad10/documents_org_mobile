@@ -22,17 +22,35 @@ from documents_org.services.rules import ids_vinculados, limpar_nome_arquivo, no
 from documents_org.services.supabase_client import SupabaseGateway
 
 
+BG_TOP = "#0f1f3d"
 BG = "#020617"
+BG_BOTTOM = "#000000"
 PANEL = "#0f1f3d"
-PANEL_ALT = "#07111f"
-LINE = "#1d4ed8"
+PANEL_ALT = "#1e293b"
+PANEL_HOVER = "#334155"
+CARD_GRADIENT_END = "#060f1e"
+LINE = "#1F3B82F6"
+BORDER_SLATE = "#5994A3B8"
+BORDER_BLUE_HOVER = "#CC60A5FA"
 TEXT = "#f1f5f9"
-MUTED = "#94a3b8"
-BLUE = "#3b82f6"
+TEXT_BODY = "#e5e7eb"
+BUTTON_TEXT = "#e2e8f0"
+BUTTON_TEXT_HOVER = "#f8fafc"
+MUTED = "#cbd5e1"
+FAINT = "#64748b"
+BLUE = "#2563eb"
+BLUE_HOVER = "#1d4ed8"
+BLUE_SOFT = "#93c5fd"
+BLUE_BORDER = "#4D3B82F6"
+BLUE_SHADOW = "#663B82F6"
 GREEN = "#86efac"
 YELLOW = "#fde047"
 RED = "#fca5a5"
+SHADOW_CARD = "#66000000"
 CENTER = ft.alignment.Alignment(0, 0)
+MICRO_ANIMATION = ft.Animation(140, ft.AnimationCurve.EASE_OUT)
+CARD_HOVER_SCALE = 1.012
+DAY_HOVER_SCALE = 1.04
 
 
 def pad(horizontal: int = 0, vertical: int = 0) -> ft.padding.Padding:
@@ -47,6 +65,32 @@ def pad(horizontal: int = 0, vertical: int = 0) -> ft.padding.Padding:
 def border_all(width: int | float, color: str) -> ft.border.Border:
     side = ft.border.BorderSide(width=width, color=color)
     return ft.border.Border(top=side, right=side, bottom=side, left=side)
+
+
+def background_gradient() -> ft.RadialGradient:
+    return ft.RadialGradient(
+        center=ft.alignment.Alignment(0, -1),
+        radius=1.2,
+        colors=[BG_TOP, BG, BG_BOTTOM],
+        stops=[0, 0.5, 1],
+    )
+
+
+def card_gradient() -> ft.LinearGradient:
+    return ft.LinearGradient(
+        begin=ft.alignment.Alignment(-1, -1),
+        end=ft.alignment.Alignment(1, 1),
+        colors=[PANEL, CARD_GRADIENT_END],
+    )
+
+
+def hover_state(event) -> bool:
+    return str(getattr(event, "data", "")).lower() == "true"
+
+
+def apply_hover_scale(event, hovered_scale: float) -> None:
+    event.control.scale = hovered_scale if hover_state(event) else 1
+    event.control.update()
 
 
 class DocumentsOrgFletApp:
@@ -81,7 +125,8 @@ class DocumentsOrgFletApp:
         self.page.add(
             ft.Container(
                 expand=True,
-                bgcolor=BG,
+                bgcolor=BG_BOTTOM,
+                gradient=background_gradient(),
                 padding=pad(horizontal=18, vertical=22),
                 content=ft.Column(controls=controls, spacing=14, expand=True, scroll=ft.ScrollMode.AUTO),
             )
@@ -101,8 +146,10 @@ class DocumentsOrgFletApp:
                 width=260,
                 padding=22,
                 bgcolor=PANEL,
-                border=border_all(1, "#1e3a8a"),
-                border_radius=18,
+                gradient=card_gradient(),
+                border=border_all(1, BLUE_BORDER),
+                border_radius=20,
+                shadow=ft.BoxShadow(blur_radius=40, color=SHADOW_CARD, offset=ft.Offset(0, 18)),
                 content=ft.Column(
                     [
                         ft.ProgressRing(color=BLUE, stroke_width=4),
@@ -154,9 +201,11 @@ class DocumentsOrgFletApp:
             content=content,
             padding=padding,
             bgcolor=PANEL,
-            border=border_all(1, "#1e3a8a"),
-            border_radius=18,
-            shadow=ft.BoxShadow(blur_radius=22, color="#00000066", offset=ft.Offset(0, 10)),
+            gradient=card_gradient(),
+            border=border_all(1, LINE),
+            border_radius=20,
+            shadow=ft.BoxShadow(blur_radius=40, color=SHADOW_CARD, offset=ft.Offset(0, 18)),
+            animate_scale=MICRO_ANIMATION,
         )
 
     def title(self, text: str, size=22) -> ft.Text:
@@ -167,10 +216,29 @@ class DocumentsOrgFletApp:
 
     def button(self, text: str, handler, primary=False) -> ft.Control:
         style = ft.ButtonStyle(
-            bgcolor=BLUE if primary else "#10254a",
-            color=TEXT,
+            bgcolor={
+                ft.ControlState.DEFAULT: BLUE if primary else PANEL_ALT,
+                ft.ControlState.HOVERED: BLUE_HOVER if primary else PANEL_HOVER,
+            },
+            color={
+                ft.ControlState.DEFAULT: TEXT if primary else BUTTON_TEXT,
+                ft.ControlState.HOVERED: BUTTON_TEXT_HOVER,
+            },
+            side={
+                ft.ControlState.DEFAULT: ft.BorderSide(1, BLUE_BORDER if primary else BORDER_SLATE),
+                ft.ControlState.HOVERED: ft.BorderSide(1, BORDER_BLUE_HOVER),
+            },
+            elevation={
+                ft.ControlState.DEFAULT: 0,
+                ft.ControlState.HOVERED: 6,
+            },
+            shadow_color={
+                ft.ControlState.DEFAULT: "#00000000",
+                ft.ControlState.HOVERED: BLUE_SHADOW,
+            },
             shape=ft.RoundedRectangleBorder(radius=12),
             padding=pad(horizontal=14, vertical=12),
+            animation_duration=MICRO_ANIMATION.duration,
         )
         return ft.Button(text, on_click=handler, style=style)
 
@@ -302,7 +370,7 @@ class DocumentsOrgFletApp:
             self.selected_day = None
             await self.with_loading("Abrindo calendario...", self.show_calendar)
 
-        return self.card(
+        card = self.card(
             ft.Column(
                 [
                     ft.Text(str(year), color=MUTED, size=11),
@@ -316,6 +384,8 @@ class DocumentsOrgFletApp:
                 horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             )
         )
+        card.on_hover = lambda event: apply_hover_scale(event, CARD_HOVER_SCALE)
+        return card
 
     def show_calendar(self) -> None:
         if not self.selected_month:
@@ -353,13 +423,26 @@ class DocumentsOrgFletApp:
                 self.selected_day = d
                 await self.with_loading("Abrindo dia...", self.show_day)
 
+            base_bg = PANEL if has_docs else PANEL_ALT
+            base_border = BLUE_BORDER if has_docs else LINE
+
+            def hover_day(event):
+                hovered = hover_state(event)
+                event.control.scale = DAY_HOVER_SCALE if hovered else 1
+                event.control.bgcolor = PANEL_HOVER if hovered else base_bg
+                event.control.border = border_all(1, BORDER_BLUE_HOVER if hovered else base_border)
+                event.control.update()
+
             return ft.Container(
                 content=ft.Stack(controls=controls, expand=True),
-                bgcolor="#10254a",
+                bgcolor=base_bg,
+                border=border_all(1, base_border),
                 border_radius=12,
                 height=58,
                 expand=1,
+                animate_scale=MICRO_ANIMATION,
                 on_click=open_day_click,
+                on_hover=hover_day,
             )
 
         rows: list[ft.Control] = [
@@ -538,6 +621,7 @@ class DocumentsOrgFletApp:
     def metric_box(self, label: str, value: int, color: str = TEXT) -> ft.Control:
         return ft.Container(
             bgcolor=PANEL_ALT,
+            border=border_all(1, LINE),
             border_radius=12,
             padding=12,
             content=ft.Column(
@@ -597,6 +681,7 @@ class DocumentsOrgFletApp:
 
         return ft.Container(
             bgcolor=PANEL_ALT,
+            border=border_all(1, LINE),
             border_radius=12,
             padding=12,
             content=ft.Column(
@@ -1108,6 +1193,7 @@ class DocumentsOrgFletApp:
             controls.append(
                 ft.Container(
                     bgcolor=PANEL_ALT,
+                    border=border_all(1, LINE),
                     border_radius=12,
                     padding=12,
                     content=ft.Column(
@@ -1128,7 +1214,7 @@ class DocumentsOrgFletApp:
                                         width=42,
                                         height=36,
                                         style=ft.ButtonStyle(
-                                            bgcolor="#162b4f",
+                                            bgcolor=PANEL_HOVER,
                                             color=RED,
                                             shape=ft.RoundedRectangleBorder(radius=10),
                                             padding=pad(horizontal=8, vertical=8),
@@ -1301,6 +1387,7 @@ class DocumentsOrgFletApp:
             rows.append(
                 ft.Container(
                     bgcolor=PANEL_ALT,
+                    border=border_all(1, LINE),
                     border_radius=12,
                     padding=12,
                     content=ft.Row(
